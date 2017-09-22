@@ -1,0 +1,15 @@
+{
+  "dependencies": {},
+  "devDependencies": {
+    "intelli-espower-loader": "^1.0.1",
+    "mocha": "^3.5.3",
+    "power-assert": "^1.4.4",
+    "sinon": "^3.3.0"
+  },
+  "directories": {
+    "test": "test/"
+  },
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha --watch --require intelli-espower-loader"
+  }
+}

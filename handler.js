@@ -1,10 +1,7 @@
 'use strict';
 
 module.exports.challenge = (event, context, callback) => {
-  console.log(JSON.stringify(event));
-
   const params = event['queryStringParameters'];
-  console.log(JSON.stringify(params));
   if (params['hub.mode'] === 'subscribe' &&
       params['hub.verify_token'] === 'echo_back_token' ) {
     const response = {
@@ -13,7 +10,6 @@ module.exports.challenge = (event, context, callback) => {
     };
     callback(null, response);
   } else {
-    console.error('Failed validation.');
     const response = {
       statusCode: 403,
       body: 'Failed validation.'
