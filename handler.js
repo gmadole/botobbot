@@ -1,5 +1,7 @@
 'use strict';
 
+const request = require('request');
+
 module.exports.challenge = (event, context, callback) => {
   const params = event['queryStringParameters'];
   if (params['hub.mode'] === 'subscribe' &&
@@ -18,21 +20,52 @@ module.exports.challenge = (event, context, callback) => {
   }
 };
 
+const sendTo = (recipientId, texts) => {
+  const text = texts.join('');
+  const options = {
+    uri: 'https://graph.facebook.com/v2.6/me/messages',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    json: {
+      'recipient': {
+        'id': recipientId
+      },
+      'message': {
+        'text': text
+      },
+      'access_token': process.env.FACEBOOK_PAGE_ACCESS_TOKEN
+    }
+  };
+
+  request.post(options, (err, res, body) => {
+    console.log(err);
+    console.log(body);
+  });
+};
 
 module.exports.receive = (event, context, callback) => {
-  console.log(event['body']);
+  console.log(event);
+
   const body = JSON.parse(event['body']);
+  const messaging = body.entry[0].messaging[0];
+  const senderId = messaging.sender.id;
+  const text = messaging.message.text || '何';
+
+  sendTo(senderId, ['えっ？', text, '？？']);
+
+  const attachments = messaging.message.attachments;
+  if (attachments) {
+    sendTo(senderId, ['これ？', attachments[0].payload.url]);
+  }
 
   const response = {
     statusCode: 200,
     body: JSON.stringify({
-      message: 'Go Serverless v1.0! Your function executed successfully!',
-      input: event,
-    }),
+      message: 'OK',
+      input: event
+    })
   };
 
   callback(null, response);
-
-  // Use this code if you don't use the http event with the LAMBDA-PROXY integration
-  // callback(null, { message: 'Go Serverless v1.0! Your function executed successfully!', event });
 };

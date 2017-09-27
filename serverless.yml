@@ -16,6 +16,8 @@ functions:
 
   receive:
     handler: handler.receive
+    environment:
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${env:FACEBOOK_PAGE_ACCESS_TOKEN}
     events:
       - http:
           path: webhook

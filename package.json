@@ -1,5 +1,7 @@
 {
-  "dependencies": {},
+  "dependencies": {
+    "request": "^2.82.0"
+  },
   "devDependencies": {
     "intelli-espower-loader": "^1.0.1",
     "mocha": "^3.5.3",
