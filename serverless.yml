@@ -4,10 +4,30 @@ provider:
   name: aws
   runtime: nodejs6.10
   region: us-east-1
+  profile: botobbot-deploy
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:us-east-1:*:*"
+
+package:
+  include:
+    - app/**
+  exclude:
+    - .git/**
+    - tmp/**
+    - test/**
 
 functions:
   challenge:
-    handler: handler.challenge
+    handler: app/handler.challenge
     events:
       - http:
           path: webhook
@@ -15,7 +35,7 @@ functions:
           cors: true
 
   receive:
-    handler: handler.receive
+    handler: app/handler.receive
     environment:
       FACEBOOK_PAGE_ACCESS_TOKEN: ${env:FACEBOOK_PAGE_ACCESS_TOKEN}
     events:
@@ -23,3 +43,22 @@ functions:
           path: webhook
           method: post
           cors: true
+
+resources:
+  Resources:
+    PhotosDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      # DeletionPolicy: Retain
+      Properties:
+        TableName: 'photos'
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH

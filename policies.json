@@ -1,0 +1,12 @@
+{
+    "AttachedPolicies": [
+        {
+            "PolicyName": "AmazonDynamoDBFullAccess",
+            "PolicyArn": "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+        },
+        {
+            "PolicyName": "AdministratorAccess",
+            "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"
+        }
+    ]
+}

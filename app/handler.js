@@ -1,6 +1,7 @@
 'use strict';
 
 const request = require('request');
+const Photo = require('./models/photo.js');
 
 module.exports.challenge = (event, context, callback) => {
   const params = event['queryStringParameters'];
@@ -57,15 +58,16 @@ module.exports.receive = (event, context, callback) => {
   const attachments = messaging.message.attachments;
   if (attachments) {
     sendTo(senderId, ['これ？', attachments[0].payload.url]);
+    const photo = new Photo();
+    photo.image_url = attachments[0].payload.url;
+    photo.save()
+      .then(() => {
+        callback(null, {statusCode: 200});
+      })
+      .catch((error) => {
+        callback(null, {statusCode: 403, body: error});
+      });
+  } else {
+    callback(null, {statusCode: 200});
   }
-
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'OK',
-      input: event
-    })
-  };
-
-  callback(null, response);
 };
