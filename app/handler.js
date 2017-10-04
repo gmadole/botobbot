@@ -1,7 +1,7 @@
 'use strict';
 
-const request = require('request');
-const Photo = require('./models/photo.js');
+const Photo = require('./models/photo');
+const Messenger = require('./messenger');
 
 module.exports.challenge = (event, context, callback) => {
   const params = event['queryStringParameters'];
@@ -21,43 +21,17 @@ module.exports.challenge = (event, context, callback) => {
   }
 };
 
-const sendTo = (recipientId, texts) => {
-  const text = texts.join('');
-  const options = {
-    uri: 'https://graph.facebook.com/v2.6/me/messages',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    json: {
-      'recipient': {
-        'id': recipientId
-      },
-      'message': {
-        'text': text
-      },
-      'access_token': process.env.FACEBOOK_PAGE_ACCESS_TOKEN
-    }
-  };
-
-  request.post(options, (err, res, body) => {
-    console.log(err);
-    console.log(body);
-  });
-};
-
 module.exports.receive = (event, context, callback) => {
-  console.log(event);
-
   const body = JSON.parse(event['body']);
   const messaging = body.entry[0].messaging[0];
   const senderId = messaging.sender.id;
   const text = messaging.message.text || '何';
 
-  sendTo(senderId, ['えっ？', text, '？？']);
+  Messenger.send(senderId, ['えっ？', text, '？？'].join(''));
 
   const attachments = messaging.message.attachments;
   if (attachments) {
-    sendTo(senderId, ['これ？', attachments[0].payload.url]);
+    Messenger.send(senderId, ['これ？', attachments[0].payload.url].join(''));
     const photo = new Photo();
     photo.image_url = attachments[0].payload.url;
     photo.save()
