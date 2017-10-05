@@ -1,32 +1,32 @@
 'use strict';
 
 const AWS = require('aws-sdk');
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const db = new AWS.DynamoDB.DocumentClient();
 const uuid = require('uuid');
+const promisify = require('util.promisify');
+
 
 class Photo {
   constructor() {
     this.id = uuid.v1();
+    this.created_at = new Date().getTime();
+  }
+
+  attributes() {
+    return {
+      id: this.id,
+      image_url: this.image_url,
+      created_at: this.created_at
+    };
   }
 
   save() {
     const params = {
       TableName: 'photos',
-      Item: {
-        id: this.id,
-        image_url: this.image_url,
-        created_at: new Date().getTime()
-      }
+      Item: this.attributes()
     };
-    return new Promise((resolve, reject) => {
-      dynamoDb.put(params, (error, data) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
+
+    return promisify(db.put.bind(db))(params);
   }
 }
 

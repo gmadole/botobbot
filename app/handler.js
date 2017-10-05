@@ -30,18 +30,16 @@ module.exports.receive = (event, context, callback) => {
   Messenger.send(senderId, ['えっ？', text, '？？'].join(''));
 
   const attachments = messaging.message.attachments;
+  const promises = [];
   if (attachments) {
     Messenger.send(senderId, ['これ？', attachments[0].payload.url].join(''));
     const photo = new Photo();
     photo.image_url = attachments[0].payload.url;
-    photo.save()
-      .then(() => {
-        callback(null, {statusCode: 200});
-      })
-      .catch((error) => {
-        callback(null, {statusCode: 403, body: error});
-      });
-  } else {
-    callback(null, {statusCode: 200});
+    promises.push(photo.save());
   }
+  Promise.all(promises).then(() => {
+    callback(null, {statusCode: 200});
+  }).catch((error) => {
+    callback(null, {statusCode: 403, body: error});
+  });
 };
