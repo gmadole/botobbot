@@ -7,6 +7,11 @@ var proxyquire = require('proxyquire').noCallThru();
 var helper = require('./test-helper');
 var Localstack = require('./localstack');
 
+const awsStub = {
+  DynamoDB: Localstack.DynamoDB,
+  S3: Localstack.S3,
+  '@global': true
+}
 
 describe('#challenge', () => {
   let event;
@@ -14,10 +19,7 @@ describe('#challenge', () => {
 
   beforeEach(() => {
     const stub = {
-      'aws-sdk': {
-        DynamoDB: Localstack.DynamoDB,
-        '@global': true
-      }
+      'aws-sdk': awsStub
     };
     const handler = proxyquire('../app/handler', stub);
     event = {
@@ -67,10 +69,7 @@ describe('#receive', () => {
       send: sinon.stub()
     }
     const stub = {
-      'aws-sdk': {
-        DynamoDB: Localstack.DynamoDB,
-        '@global': true
-      },
+      'aws-sdk': awsStub,
       './messenger': messenger
     };
     const handler = proxyquire('../app/handler', stub);

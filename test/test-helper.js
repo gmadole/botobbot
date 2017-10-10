@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const sinon = require('sinon');
 const promisify = require('util.promisify');
 
@@ -10,7 +11,7 @@ const Localstack = require('./localstack');
 
 module.exports.fixture = {
   read(name) {
-    return JSON.parse(fs.readFileSync(`${__dirname}/fixtures/${name}.json`, 'utf8'));
+    return JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', `${name}.json`), 'utf8'));
   }
 }
 
@@ -27,6 +28,8 @@ function initResource(resource) {
   switch (resource.Type) {
   case 'AWS::DynamoDB::Table':
     return initTable(resource.Properties);
+  case 'AWS::S3::Bucket':
+    return initBucket(resource.Properties);
   default:
     return Promise.resolve();
   }
@@ -39,6 +42,15 @@ function initTable(props) {
   return deleteTable({TableName: props.TableName})
     .catch(() => {})
     .then(() => createTable(props));
+}
+
+function initBucket(props) {
+  const s3 = new Localstack.S3();
+  const createBucket = promisify(s3.createBucket.bind(s3));
+  const deleteBucket = promisify(s3.deleteBucket.bind(s3));
+  return deleteBucket({Bucket: props.BucketName})
+    .catch(() => {})
+    .then(() => createBucket({Bucket: props.BucketName}));
 }
 
 function initEnv(env) {

@@ -18,6 +18,6 @@
   },
   "scripts": {
     "test": "node_modules/mocha/bin/mocha --recursive --watch --require intelli-espower-loader",
-    "localstack": "SERVICES=dynamodb localstack start --docker"
+    "localstack": "SERVICES=dynamodb,s3 localstack start --docker"
   }
 }

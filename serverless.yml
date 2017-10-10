@@ -18,7 +18,7 @@ provider:
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:us-east-1:*:*"
   environment:
-    TABLE_PREFIX: ${self:service}-${self:provider.stage}-
+    RESOURCE_PREFIX: ${self:service}-${self:provider.stage}-
     FACEBOOK_PAGE_ACCESS_TOKEN: ${env:FACEBOOK_PAGE_ACCESS_TOKEN}
 
 package:
@@ -54,7 +54,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       # DeletionPolicy: Retain
       Properties:
-        TableName: ${self:provider.environment.TABLE_PREFIX}photos
+        TableName: ${self:provider.environment.RESOURCE_PREFIX}photos
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
@@ -66,3 +66,16 @@ resources:
           -
             AttributeName: id
             KeyType: HASH
+    PhotosS3Bucket:
+      Type: 'AWS::S3::Bucket'
+      # DeletionPolicy: Retain
+      Properties:
+        BucketName: ${self:provider.environment.RESOURCE_PREFIX}photos
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - GET
+                - HEAD
+              AllowedOrigins:
+                - "*"
+

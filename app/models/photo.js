@@ -2,6 +2,7 @@
 
 const AWS = require('aws-sdk');
 const db = new AWS.DynamoDB.DocumentClient();
+const s3 = new AWS.S3();
 const uuid = require('uuid');
 const promisify = require('util.promisify');
 
@@ -20,9 +21,13 @@ class Photo {
     };
   }
 
+  store(url) {
+    return Promise.resolve(url);
+  }
+
   save() {
     const params = {
-      TableName: `${process.env.TABLE_PREFIX}photos`,
+      TableName: `${process.env.RESOURCE_PREFIX}photos`,
       Item: this.attributes()
     };
 
