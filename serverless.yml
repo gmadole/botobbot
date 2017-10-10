@@ -4,6 +4,7 @@ provider:
   name: aws
   runtime: nodejs6.10
   region: us-east-1
+  stage: ${opt:stage, 'dev'}
   profile: botobbot-deploy
   iamRoleStatements:
     - Effect: Allow
@@ -16,6 +17,9 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:us-east-1:*:*"
+  environment:
+    TABLE_PREFIX: ${self:service}-${self:provider.stage}-
+    FACEBOOK_PAGE_ACCESS_TOKEN: ${env:FACEBOOK_PAGE_ACCESS_TOKEN}
 
 package:
   include:
@@ -38,8 +42,6 @@ functions:
 
   receive:
     handler: app/handler.receive
-    environment:
-      FACEBOOK_PAGE_ACCESS_TOKEN: ${env:FACEBOOK_PAGE_ACCESS_TOKEN}
     events:
       - http:
           path: webhook
@@ -52,7 +54,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       # DeletionPolicy: Retain
       Properties:
-        TableName: 'photos'
+        TableName: ${self:provider.environment.TABLE_PREFIX}photos
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1

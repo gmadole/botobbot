@@ -1,10 +1,10 @@
 'use strict';
 
 const fs = require('fs');
-const yaml = require('js-yaml');
 const sinon = require('sinon');
 const promisify = require('util.promisify');
 
+const Serverless = require('serverless');
 const AWS = require('aws-sdk');
 const Localstack = require('./localstack');
 
@@ -14,32 +14,51 @@ module.exports.fixture = {
   }
 }
 
-function readResources() {
-  const config = yaml.safeLoad(fs.readFileSync('serverless.yml', 'utf8'));
-  return config.resources && config.resources.Resources;
+function readConfig() {
+  const sls = new Serverless();
+  return sls.service.load().then(() => {
+    return sls.variables.populateService({ stage: 'test' });
+  }).then(() => {
+    return Promise.resolve(sls.service);
+  });
 }
 
-function initDb() {
-  const resources = readResources();
-  if (resources) {
-    const tables = Object.keys(resources)
-          .filter(x => resources[x].Type == 'AWS::DynamoDB::Table');
-    const db = new Localstack.DynamoDB();
-    const createTable = promisify(db.createTable.bind(db));
-    const deleteTable = promisify(db.deleteTable.bind(db));
-    const ps = tables.map(x => {
-      const params = resources[x].Properties
-      deleteTable({TableName: params.TableName})
-        .catch(() => {})
-        .then(() => createTable(params))
-    })
-    return Promise.all(ps);
+function initResource(resource) {
+  switch (resource.Type) {
+  case 'AWS::DynamoDB::Table':
+    return initTable(resource.Properties);
+  default:
+    return Promise.resolve();
   }
-  return Promise.resolve();
 }
 
+function initTable(props) {
+  const db = new Localstack.DynamoDB();
+  const createTable = promisify(db.createTable.bind(db));
+  const deleteTable = promisify(db.deleteTable.bind(db));
+  return deleteTable({TableName: props.TableName})
+    .catch(() => {})
+    .then(() => createTable(props));
+}
+
+function initEnv(env) {
+  let org = Object.assign({}, process.env);
+
+  before(() => {
+    Object.assign(process.env, env);
+  });
+
+  after(() => {
+    process.env = org;
+  });
+}
 
 before((done) => {
-  initDb().then(data => {
-  }).then(done, done);
-})
+  readConfig().then((config) => {
+    initEnv(config.provider.environment);
+    const resources = config.resources && config.resources.Resources || [];
+    const ps = Object.keys(resources).map((x) => initResource(resources[x]));
+    return Promise.all(ps);
+  }).then(() => done());
+});
+

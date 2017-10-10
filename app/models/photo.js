@@ -22,7 +22,7 @@ class Photo {
 
   save() {
     const params = {
-      TableName: 'photos',
+      TableName: `${process.env.TABLE_PREFIX}photos`,
       Item: this.attributes()
     };
 

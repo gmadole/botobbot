@@ -118,7 +118,7 @@ describe('#receive', () => {
 
     it('creates photo record', () => {
       const db = new Localstack.DynamoDB.DocumentClient();
-      const params = { TableName: 'photos', Select: 'COUNT' };
+      const params = { TableName: 'botobbot-test-photos', Select: 'COUNT' };
       let org;
       return promisify(db.scan.bind(db))(params).then((data) => {
         org = data.Count;
