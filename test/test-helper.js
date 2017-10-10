@@ -12,6 +12,10 @@ const Localstack = require('./localstack');
 module.exports.fixture = {
   read(name) {
     return JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', `${name}.json`), 'utf8'));
+  },
+
+  join(name) {
+    return path.join(__dirname, 'fixtures', name);
   }
 }
 
@@ -46,11 +50,22 @@ function initTable(props) {
 
 function initBucket(props) {
   const s3 = new Localstack.S3();
-  const createBucket = promisify(s3.createBucket.bind(s3));
-  const deleteBucket = promisify(s3.deleteBucket.bind(s3));
-  return deleteBucket({Bucket: props.BucketName})
-    .catch(() => {})
-    .then(() => createBucket({Bucket: props.BucketName}));
+  const params = { Bucket: props.BucketName };
+  return promisify(s3.headBucket.bind(s3))(params).then((data) => {
+    return emptyBucket(s3, props.BucketName);
+  }, (err) => {
+    return promisify(s3.createBucket.bind(s3))(params);
+  });
+}
+
+function emptyBucket(s3, bucket) {
+  const params = { Bucket: bucket };
+  return promisify(s3.listObjects.bind(s3))(params).then((data) => {
+    const ps = data.Contents.map((item) => {
+      return promisify(s3.deleteObject.bind(s3))(Object.assign({ Key: item.Key }, params));
+    });
+    return Promise.all(ps);
+  });
 }
 
 function initEnv(env) {

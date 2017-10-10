@@ -1,11 +1,14 @@
 'use strict';
 
-var promisify = require('util.promisify');
-var assert = require('power-assert');
-var sinon = require('sinon');
-var proxyquire = require('proxyquire').noCallThru();
-var helper = require('./test-helper');
-var Localstack = require('./localstack');
+const fs = require('fs');
+const promisify = require('util.promisify');
+const assert = require('power-assert');
+const sinon = require('sinon');
+const proxyquire = require('proxyquire').noCallThru();
+const nock = require('nock');
+
+const helper = require('./test-helper');
+const Localstack = require('./localstack');
 
 const awsStub = {
   DynamoDB: Localstack.DynamoDB,
@@ -103,6 +106,9 @@ describe('#receive', () => {
       event = {
         body: JSON.stringify(helper.fixture.read('receive_event_image'))
       };
+      nock('https://botobbot.test')
+        .get('/path/to/image.jpg?xxx=abcdef')
+        .reply(200, (uri, requestBody) => fs.createReadStream(helper.fixture.join('image.jpg')));
     });
 
     it('calls messenger.send twice with some text and with image url', () => {
@@ -111,7 +117,7 @@ describe('#receive', () => {
         assert(messenger.send.getCall(0).args[0] === '6789012345678901');
         assert(messenger.send.getCall(0).args[1].length > 0);
         assert(messenger.send.getCall(1).args[0] === '6789012345678901');
-        assert(messenger.send.getCall(1).args[1].includes('https:\\/\\/botobbot.test\\/path\\/to\\/image.jpg?xxx=abcdef'));
+        assert(messenger.send.getCall(1).args[1].includes('https://botobbot.test/path/to/image.jpg?xxx=abcdef'));
       });
     });
 
@@ -126,6 +132,22 @@ describe('#receive', () => {
         return promisify(db.scan.bind(db))(params);
       }).then((data) => {
         assert(data.Count - org === 1);
+      });
+    });
+
+    it('stores image to bucket', () => {
+      const db = new Localstack.DynamoDB.DocumentClient();
+      const params = { Bucket: 'botobbot-test-photos' };
+      const s3 = new Localstack.S3();
+
+      let org;
+      return promisify(s3.listObjects.bind(s3))(params).then((data) => {
+        org = data.Contents.length;
+        return handle(event, {});
+      }).then(() => {
+        return promisify(s3.listObjects.bind(s3))(params);
+      }).then((data) => {
+        assert(data.Contents.length - org === 1);
       });
     });
   });

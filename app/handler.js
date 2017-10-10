@@ -32,10 +32,15 @@ module.exports.receive = (event, context, callback) => {
   const attachments = messaging.message.attachments;
   const promises = [];
   if (attachments) {
-    Messenger.send(senderId, ['これ？', attachments[0].payload.url].join(''));
+    const src = attachments[0].payload.url;
+    Messenger.send(senderId, ['これ？', src].join(''));
     const photo = new Photo();
-    photo.image_url = attachments[0].payload.url;
-    promises.push(photo.save());
+    promises.push(
+      photo.store(src).then((dst) => {
+        photo.image_url = dst;
+        return photo.save();
+      })
+    );
   }
   Promise.all(promises).then(() => {
     callback(null, {statusCode: 200});
