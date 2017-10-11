@@ -69,7 +69,7 @@ describe('#receive', () => {
 
   beforeEach(() => {
     messenger = {
-      send: sinon.stub()
+      send: sinon.stub().returns(Promise.resolve())
     }
     const stub = {
       'aws-sdk': awsStub,

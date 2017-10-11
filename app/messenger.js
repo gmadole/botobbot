@@ -1,7 +1,8 @@
 const request = require('request');
+const promisify = require('util.promisify');
 
 module.exports = {
-  send: (recipientId, text) => {
+  send(recipientId, text) {
     const options = {
       uri: 'https://graph.facebook.com/v2.6/me/messages',
       headers: {
@@ -18,9 +19,6 @@ module.exports = {
       }
     };
 
-    request.post(options, (err, res, body) => {
-      console.log(err);
-      console.log(body);
-    });
+    return promisify(request.post.bind(request))(options);
   }
 }

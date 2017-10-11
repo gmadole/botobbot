@@ -27,22 +27,21 @@ module.exports.receive = (event, context, callback) => {
   const senderId = messaging.sender.id;
   const text = messaging.message.text || '何';
 
-  Messenger.send(senderId, ['えっ？', text, '？？'].join(''));
+  let msgP = Messenger.send(senderId, ['えっ？', text, '？？'].join(''));
 
   const attachments = messaging.message.attachments;
-  const promises = [];
+  let dbP = Promise.resolve();
   if (attachments) {
     const src = attachments[0].payload.url;
-    Messenger.send(senderId, ['これ？', src].join(''));
+    msgP = msgP.then(() => Messenger.send(senderId, ['これ？', src].join('')));
+
     const photo = new Photo();
-    promises.push(
-      photo.store(src).then((dst) => {
-        photo.image_url = dst;
-        return photo.save();
-      })
-    );
+    dbP = photo.store(src).then((dst) => {
+      photo.image_url = dst;
+      return photo.save();
+    });
   }
-  Promise.all(promises).then(() => {
+  Promise.all([msgP, dbP]).then(() => {
     callback(null, {statusCode: 200});
   }).catch((error) => {
     callback(null, {statusCode: 403, body: error});
