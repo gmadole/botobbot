@@ -1,5 +1,6 @@
 'use strict';
 
+const co = require('co');
 const Photo = require('./models/photo');
 const Messenger = require('./messenger');
 
@@ -25,24 +26,22 @@ module.exports.receive = (event, context, callback) => {
   const body = JSON.parse(event['body']);
   const messaging = body.entry[0].messaging[0];
   const senderId = messaging.sender.id;
-  const text = messaging.message.text || '何';
-
-  let msgP = Messenger.send(senderId, ['えっ？', text, '？？'].join(''));
-
+  const text = messaging.message.text;
   const attachments = messaging.message.attachments;
-  let dbP = Promise.resolve();
-  if (attachments) {
-    const src = attachments[0].payload.url;
-    msgP = msgP.then(() => Messenger.send(senderId, ['これ？', src].join('')));
 
-    const photo = new Photo();
-    dbP = photo.store(src).then((dst) => {
-      photo.image_url = dst.Location;
-      photo.image_meta = dst;
-      return photo.save();
-    });
-  }
-  Promise.all([msgP, dbP]).then(() => {
+  return co(function *() {
+    yield Messenger.send(senderId, `えっ？${text || '何'}？？`);
+
+    if (attachments) {
+      const src = attachments[0].payload.url;
+      const photo = new Photo();
+      const meta = yield photo.store(src)
+      photo.image_url = meta.Location;
+      photo.image_meta = meta;
+      yield photo.save();
+      yield Messenger.send(senderId, `これ？${photo.image_url}`);
+    }
+  }).then(() => {
     callback(null, { statusCode: 200 });
   }).catch((err) => {
     console.log(err);

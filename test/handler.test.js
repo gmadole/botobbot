@@ -113,12 +113,17 @@ describe('#receive', () => {
     });
 
     it('calls messenger.send twice with some text and with image url', () => {
-      return handle(event, {}).then(() => {
+      const db = new Localstack.DynamoDB.DocumentClient();
+      return co(function *() {
+        yield handle(event, {});
         assert(messenger.send.calledTwice);
         assert(messenger.send.getCall(0).args[0] === '6789012345678901');
         assert(messenger.send.getCall(0).args[1].length > 0);
+
+        const items = yield promisify(db.scan.bind(db))({ TableName: 'botobbot-test-photos' });
+        const item = items.Items[items.Items.length - 1];
         assert(messenger.send.getCall(1).args[0] === '6789012345678901');
-        assert(messenger.send.getCall(1).args[1].includes('https://botobbot.test/path/to/image.jpg?xxx=abcdef'));
+        assert(messenger.send.getCall(1).args[1].includes(item.image_url));
       });
     });
 
