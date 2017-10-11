@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const co = require('co');
 const promisify = require('util.promisify');
 const assert = require('power-assert');
 const sinon = require('sinon');
@@ -124,30 +125,33 @@ describe('#receive', () => {
     it('creates photo record', () => {
       const db = new Localstack.DynamoDB.DocumentClient();
       const params = { TableName: 'botobbot-test-photos', Select: 'COUNT' };
-      let org;
-      return promisify(db.scan.bind(db))(params).then((data) => {
-        org = data.Count;
-        return handle(event, {});
-      }).then(() => {
-        return promisify(db.scan.bind(db))(params);
-      }).then((data) => {
-        assert(data.Count - org === 1);
+      return co(function *() {
+        const org = yield promisify(db.scan.bind(db))(params);
+        yield handle(event, {});
+        const cur = yield promisify(db.scan.bind(db))(params);
+        assert(cur.Count - org.Count === 1);
       });
     });
 
     it('stores image to bucket', () => {
-      const db = new Localstack.DynamoDB.DocumentClient();
-      const params = { Bucket: 'botobbot-test-photos' };
       const s3 = new Localstack.S3();
+      const params = { Bucket: 'botobbot-test-photos' };
 
-      let org;
-      return promisify(s3.listObjects.bind(s3))(params).then((data) => {
-        org = data.Contents.length;
-        return handle(event, {});
-      }).then(() => {
-        return promisify(s3.listObjects.bind(s3))(params);
-      }).then((data) => {
-        assert(data.Contents.length - org === 1);
+      return co(function *() {
+        const org = yield promisify(s3.listObjects.bind(s3))(params);
+        yield handle(event, {});
+        const items = yield promisify(s3.listObjects.bind(s3))(params);
+        assert(items.Contents.length - org.Contents.length === 1);
+
+        const key = items.Contents[items.Contents.length - 1].Key;
+        const item = yield promisify(s3.headObject.bind(s3))(Object.assign({ Key: key }, params));
+        assert(item.ContentType === 'image/jpeg');
+
+        const acl = yield promisify(s3.getObjectAcl.bind(s3))(Object.assign({ Key: key }, params));
+        const pr = acl.Grants.find((g) =>
+                                   g.Grantee.URI === 'http://acs.amazonaws.com/groups/global/AllUsers' &&
+                                   g.Permission === 'READ');
+        assert(pr);
       });
     });
   });

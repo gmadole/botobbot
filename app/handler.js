@@ -37,7 +37,8 @@ module.exports.receive = (event, context, callback) => {
 
     const photo = new Photo();
     dbP = photo.store(src).then((dst) => {
-      photo.image_url = dst;
+      photo.image_url = dst.Location;
+      photo.image_meta = dst;
       return photo.save();
     });
   }
