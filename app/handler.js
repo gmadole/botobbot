@@ -42,8 +42,9 @@ module.exports.receive = (event, context, callback) => {
     });
   }
   Promise.all([msgP, dbP]).then(() => {
-    callback(null, {statusCode: 200});
-  }).catch((error) => {
-    callback(null, {statusCode: 403, body: error});
+    callback(null, { statusCode: 200 });
+  }).catch((err) => {
+    console.log(err);
+    callback(null, { statusCode: 403, body: err });
   });
 };
